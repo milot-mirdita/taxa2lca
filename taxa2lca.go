@@ -1,4 +1,4 @@
-package taxa2lca
+package main
 
 import (
 	"bytes"
