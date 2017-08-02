@@ -18,6 +18,7 @@ var (
 	nodesflag  string
 	namesflag  string
 	taxdbflag  string
+	outflag    string
 	taxidxflag string
 	taxlevel   string
 	helpflag   bool
@@ -28,6 +29,7 @@ func init() {
 	flag.StringVar(&namesflag, "names", "names.dmp", "names.dmp file of taxonomy")
 	flag.StringVar(&taxdbflag, "taxid database", "taxons_db", "Input database name")
 	flag.StringVar(&taxidxflag, "taxid index", "taxons_db.index", "Input index name")
+	flag.StringVar(&outflag, "Output files", "taxa.tsv", "Output tsv files")
 	flag.IntVar(&procsflag, "nprocs", 4, "Number of cpus for multithreading [optional]")
 	flag.StringVar(&taxlevel, "levels", "", "Desired LCA taxonomical levels [optional]")
 	flag.BoolVar(&helpflag, "help", false, "Print USAGE and exits")
@@ -44,21 +46,23 @@ func init() {
 }
 
 type Job struct {
+	Rank  int64
 	Start int64
 	Size  int64
 }
 
-func lca(input <-chan Job, taxDB *Taxonomy, reader *dbreader.Reader, levs [][]byte) {
-	f, err := os.Create("/tmp/dat2")
-	if err != nil {
-		log.Panic("Could not create output file!")
-	}
-	defer f.Close()
+func lca(input <-chan Job, taxDB *Taxonomy, reader *dbreader.Reader, levs [][]byte, outbase string) {
 
 	for {
 		select {
 		case job, ok := <-input:
 			if ok {
+				f, err := os.Create(outbase + "." + strconv.FormatInt(job.Rank, 10))
+				if err != nil {
+					log.Panic("Could not create output file!")
+				}
+				defer f.Close()
+
 				for i := job.Start; i < job.Start+job.Size; i++ {
 					data := reader.Data(i)
 					split := strings.Split(data, "\n")
@@ -95,7 +99,7 @@ func lca(input <-chan Job, taxDB *Taxonomy, reader *dbreader.Reader, levs [][]by
 
 func decomposeDomain(domain_size, world_rank, world_size int64) Job {
 	if world_size > domain_size {
-		return Job{0, 0}
+		return Job{world_rank, 0, 0}
 	}
 
 	subdomain_start := domain_size / world_size * world_rank
@@ -105,7 +109,7 @@ func decomposeDomain(domain_size, world_rank, world_size int64) Job {
 		subdomain_size += domain_size % world_size
 	}
 
-	return Job{subdomain_start, subdomain_size}
+	return Job{world_rank, subdomain_start, subdomain_size}
 
 }
 
@@ -124,11 +128,11 @@ func main() {
 
 	jobs := make(chan Job, 1)
 
-	go lca(jobs, taxDB, &reader, levs)
-
 	for i := 0; i < procsflag; i++ {
 		jobs <- decomposeDomain(reader.Size(), int64(i), int64(procsflag))
 	}
+
+	go lca(jobs, taxDB, &reader, levs, outflag)
 
 	reader.Delete()
 
