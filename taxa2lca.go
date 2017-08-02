@@ -26,9 +26,9 @@ var (
 func init() {
 	flag.StringVar(&nodesflag, "nodes", "nodes.dmp", "nodes.dmp file of taxonomy")
 	flag.StringVar(&namesflag, "names", "names.dmp", "names.dmp file of taxonomy")
-	flag.StringVar(&taxdbflag, "taxid database", "taxons_db", "Input database name")
-	flag.StringVar(&taxidxflag, "taxid index", "taxons_db.index", "Input index name")
-	flag.StringVar(&outflag, "output file", "taxa.tsv", "Output tsv file")
+	flag.StringVar(&taxdbflag, "database", "taxons_db", "Input database name")
+	flag.StringVar(&taxidxflag, "index", "taxons_db.index", "Input index name")
+	flag.StringVar(&outflag, "output", "taxa.tsv", "Output tsv file")
 	flag.StringVar(&taxlevel, "levels", "", "Desired LCA taxonomical levels [optional]")
 	flag.BoolVar(&helpflag, "help", false, "Print USAGE and exits")
 	flag.Parse()
