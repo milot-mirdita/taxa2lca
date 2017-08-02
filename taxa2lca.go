@@ -126,13 +126,17 @@ func main() {
 	reader := dbreader.Reader{}
 	reader.Make(taxdbflag, taxidxflag)
 
-	jobs := make(chan Job, 1)
+	done := make(chan bool)
+	jobs := make(chan Job)
 
+	go func() {
+		for i := 0; i < procsflag; i++ {
+			jobs <- decomposeDomain(reader.Size(), int64(i), int64(procsflag))
+		}
+		done <- true
+	}()
 	go lca(jobs, taxDB, &reader, levs, outflag)
-
-	for i := 0; i < procsflag; i++ {
-		jobs <- decomposeDomain(reader.Size(), int64(i), int64(procsflag))
-	}
+	<-done
 
 	reader.Delete()
 
