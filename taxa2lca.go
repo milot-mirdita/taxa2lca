@@ -63,6 +63,7 @@ func lca(input <-chan Job, taxDB *Taxonomy, reader *dbreader.Reader, levs [][]by
 				}
 				defer f.Close()
 
+				log.Printf("Computing split from %s to %s", job.Start, job.Start+job.Size)
 				for i := job.Start; i < job.Start+job.Size; i++ {
 					data := reader.Data(i)
 					split := strings.Split(data, "\n")
