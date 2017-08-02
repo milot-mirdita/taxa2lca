@@ -63,16 +63,15 @@ func lca(input <-chan Job, taxDB *Taxonomy, reader *dbreader.Reader, levs [][]by
 				}
 				defer f.Close()
 
-				log.Printf("Computing split from %s to %s", job.Start, job.Start+job.Size)
+				log.Printf("Computing split from %d to %d", job.Start, job.Start+job.Size)
 				for i := job.Start; i < job.Start+job.Size; i++ {
 					data := reader.Data(i)
 					split := strings.Split(data, "\n")
 					taxa := make([]int, len(split))
-					var query string
+
+					query := strconv.FormatUint(uint64(reader.Key(i)), 10)
 					for i, e := range strings.Split(data, "\n") {
-						values := strings.Split(e, "\t")
-						query = values[0]
-						taxon, _ := strconv.ParseInt(values[1], 10, 64)
+						taxon, _ := strconv.ParseInt(e, 10, 64)
 						taxa[i] = int(taxon)
 					}
 
@@ -129,11 +128,11 @@ func main() {
 
 	jobs := make(chan Job, 1)
 
+	go lca(jobs, taxDB, &reader, levs, outflag)
+
 	for i := 0; i < procsflag; i++ {
 		jobs <- decomposeDomain(reader.Size(), int64(i), int64(procsflag))
 	}
-
-	go lca(jobs, taxDB, &reader, levs, outflag)
 
 	reader.Delete()
 
